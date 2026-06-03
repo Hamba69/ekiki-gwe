@@ -1,0 +1,23 @@
+{
+  "name": "ekiki-gwe",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@vercel/kv": "^3.0.0",
+    "html5-qrcode": "^2.3.8",
+    "next": "^14.2.30",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
+  }
+}
