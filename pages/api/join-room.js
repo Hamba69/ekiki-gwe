@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { kv } from "@vercel/kv";
 import { createPusher, getBaseUrl, getRoomKey } from "../../lib/server.js";
+import { kvGet, kvSet } from "../../lib/kv.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   const key = getRoomKey(code);
-  const room = await kv.get(key);
+  const room = await kvGet(key);
 
   if (!room) {
     return res.status(404).json({ error: "Room not found" });
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     },
   };
 
-  await kv.set(key, roomState, { ex: 14400 });
+  await kvSet(key, roomState, { ex: 14400 });
 
   const pusher = createPusher();
   await pusher.trigger(`room-${code}`, "player-joined", {

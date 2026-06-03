@@ -1,5 +1,5 @@
-import { kv } from "@vercel/kv";
 import { createPusher, getRoomKey } from "../../lib/server.js";
+import { kvGet, kvSet } from "../../lib/kv.js";
 import { applyGameAction } from "../../lib/room.js";
 
 export default async function handler(req, res) {
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   const key = getRoomKey(code);
-  const room = await kv.get(key);
+  const room = await kvGet(key);
 
   if (!room) {
     return res.status(404).json({ error: "Room not found" });
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   const changed = JSON.stringify(nextRoom) !== JSON.stringify(room);
 
   if (changed) {
-    await kv.set(key, nextRoom, { ex: 14400 });
+    await kvSet(key, nextRoom, { ex: 14400 });
     const pusher = createPusher();
     await pusher.trigger(`room-${code}`, "game-state", { roomState: nextRoom });
   }

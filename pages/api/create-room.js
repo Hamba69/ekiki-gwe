@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { kv } from "@vercel/kv";
 import { getBaseUrl, getRoomKey } from "../../lib/server.js";
 import { createEmptyScores } from "../../lib/room.js";
+import { kvGet, kvSet } from "../../lib/kv.js";
 
 function makeCode() {
   return Math.random().toString(36).slice(2, 8).padEnd(6, "0").toUpperCase();
@@ -21,11 +21,11 @@ export default async function handler(req, res) {
   }
 
   let code = makeCode();
-  let room = await kv.get(getRoomKey(code));
+  let room = await kvGet(getRoomKey(code));
 
   while (room) {
     code = makeCode();
-    room = await kv.get(getRoomKey(code));
+    room = await kvGet(getRoomKey(code));
   }
 
   const hostId = randomUUID();
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     decided: false,
   };
 
-  await kv.set(getRoomKey(code), roomState, { ex: 14400 });
+  await kvSet(getRoomKey(code), roomState, { ex: 14400 });
 
   return res.status(200).json({
     code,
