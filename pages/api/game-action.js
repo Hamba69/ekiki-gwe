@@ -28,8 +28,13 @@ export default async function handler(req, res) {
 
   if (changed) {
     await kvSet(key, nextRoom, { ex: 14400 });
-    const pusher = createPusher();
-    await pusher.trigger(`room-${code}`, "game-state", { roomState: nextRoom });
+    try {
+      const pusher = createPusher();
+      await pusher.trigger(`room-${code}`, "game-state", { roomState: nextRoom });
+    } catch (err) {
+      console.error("Pusher trigger error:", err.message);
+      // Continue anyway - Pusher is optional for development
+    }
   }
 
   return res.status(200).json({ ok: true, roomState: nextRoom });

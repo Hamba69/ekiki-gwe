@@ -43,11 +43,16 @@ export default async function handler(req, res) {
 
   await kvSet(key, roomState, { ex: 14400 });
 
-  const pusher = createPusher();
-  await pusher.trigger(`room-${code}`, "player-joined", {
-    roomState,
-    players: roomState.players,
-  });
+  try {
+    const pusher = createPusher();
+    await pusher.trigger(`room-${code}`, "player-joined", {
+      roomState,
+      players: roomState.players,
+    });
+  } catch (err) {
+    console.error("Pusher trigger error:", err.message);
+    // Continue anyway - Pusher is optional for development
+  }
 
   return res.status(200).json({
     ok: true,
