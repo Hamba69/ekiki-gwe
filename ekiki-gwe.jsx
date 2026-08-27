@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { buildCardOrder } from "./lib/room.js";
+import { useEffect, useMemo, useState } from "react";
+import { CARD_COUNT, applyGameAction, buildCardOrder, createEmptyScores } from "./lib/room.js";
 
 // ─── SCC Orbit Compression: 6 categories × 30 = 180 cards ───────────────────
 const CAT = {
@@ -248,6 +247,7 @@ body{background:#07070f;overflow-x:hidden}
 .btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.1)}
 .btn-ghost:hover{background:rgba(255,255,255,.12)}
 .btn-sm{padding:.55rem 1.3rem;font-size:.82rem}
+.btn:focus-visible,.inp:focus-visible,.scene:focus-visible,.chip-x:focus-visible{outline:3px solid rgba(245,197,24,.8);outline-offset:3px}
 /* Input */
 .inp{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:.7rem 1.1rem;color:#fff;font-family:'Outfit',sans-serif;font-size:1rem;outline:none;transition:border-color .2s}
 .inp::placeholder{color:rgba(255,255,255,.3)}
@@ -274,318 +274,28 @@ body{background:#07070f;overflow-x:hidden}
 `;
 
 const AVATARS = ["🦁", "🐯", "🦊", "🐸", "🦋", "🐙", "🎭", "🔥", "💀", "👾", "🌙", "⚡"];
+const STORAGE_KEY = "ekiki-gwe:active-game:v1";
 
-function AvatarPicker({ value, onChange }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-        gap: ".5rem",
-        width: "100%",
-      }}
-    >
-      {AVATARS.map((avatar) => (
-        <button
-          key={avatar}
-          type="button"
-          onClick={() => onChange(avatar)}
-          className="btn"
-          style={{
-            padding: ".7rem 0",
-            fontSize: "1.3rem",
-            borderRadius: 14,
-            border: avatar === value ? "1.5px solid #F5C518" : "1.5px solid rgba(255,255,255,.12)",
-            background: avatar === value ? "rgba(245,197,24,.16)" : "rgba(255,255,255,.05)",
-            color: "#fff",
-          }}
-        >
-          {avatar}
-        </button>
-      ))}
-    </div>
-  );
-}
+function isValidStoredGame(game) {
+  if (!game || !["play", "result"].includes(game.phase)) return false;
+  if (!Array.isArray(game.players) || game.players.length < 2 || game.players.length > 10) return false;
+  if (!Number.isInteger(game.cardSeed) || !Number.isInteger(game.cardIdx) || game.cardIdx < 0 || game.cardIdx >= CARD_COUNT) return false;
+  if (!Number.isInteger(game.playerIdx) || game.playerIdx < 0 || game.playerIdx >= game.players.length) return false;
+  if (typeof game.flipped !== "boolean" || typeof game.decided !== "boolean" || !game.scores || typeof game.scores !== "object") return false;
 
-function ProfileForm({
-  title,
-  subtitle,
-  nameInput,
-  setNameInput,
-  avatar,
-  setAvatar,
-  buttonLabel,
-  onSubmit,
-  note,
-  disabled,
-}) {
-  const handleSubmit = e => {
-    e.preventDefault();
-    onSubmit(nameInput.trim(), avatar);
-  };
+  const ids = new Set();
+  const names = new Set();
+  for (const player of game.players) {
+    if (!player || typeof player.id !== "string" || typeof player.name !== "string" || !player.id || !player.name) return false;
+    if (ids.has(player.id) || names.has(player.name)) return false;
+    ids.add(player.id);
+    names.add(player.name);
 
-  return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        width: "100%",
-        maxWidth: 420,
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <div className="logo" style={{ fontSize: "clamp(2.4rem,10vw,3.8rem)" }}>{title}</div>
-        <div style={{ fontSize: ".82rem", letterSpacing: ".18em", color: "rgba(255,255,255,.35)", marginTop: ".35rem", textTransform: "uppercase" }}>
-          {subtitle}
-        </div>
-      </div>
+    const score = game.scores[player.name];
+    if (!score || !Number.isInteger(score.did) || score.did < 0 || !Number.isInteger(score.drank) || score.drank < 0) return false;
+  }
 
-      <div style={{ background: "rgba(255,255,255,.03)", border: "1.5px solid rgba(255,255,255,.08)", borderRadius: 18, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: ".65rem" }}>
-          <input
-            className="inp"
-            placeholder="Enter name…"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value)}
-            maxLength={20}
-          />
-          <AvatarPicker value={avatar} onChange={setAvatar} />
-        </div>
-
-        {note ? (
-          <div style={{ fontSize: ".77rem", lineHeight: 1.5, color: "rgba(255,255,255,.35)" }}>{note}</div>
-        ) : null}
-
-        <button className="btn btn-gold" type="submit" disabled={disabled || !nameInput.trim()} style={{ width: "100%", fontSize: "1.02rem", padding: "1rem" }}>
-          {buttonLabel}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function LandingScreen({ onCreate, onJoin }) {
-  return (
-    <div className="root">
-      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem", textAlign: "center" }}>
-        <div className="logo" style={{ fontSize: "clamp(3rem,14vw,4.5rem)", background: "linear-gradient(135deg,#F5C518,#FF6B35)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          EKIKI GWE
-        </div>
-        <div style={{ fontSize: ".82rem", letterSpacing: ".2em", color: "rgba(255,255,255,.35)", textTransform: "uppercase" }}>
-          The party game that exposes everyone
-        </div>
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: ".75rem", marginTop: "1rem" }}>
-          <button className="btn btn-gold" style={{ width: "100%", fontSize: "1.05rem", padding: "1rem" }} onClick={onCreate}>
-            Create Room
-          </button>
-          <button className="btn btn-ghost" style={{ width: "100%", fontSize: "1.05rem", padding: "1rem" }} onClick={onJoin}>
-            Join Room
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function JoinQrScanner({ active, onDetected, onError }) {
-  const idRef = useRef(`qr-${Math.random().toString(36).slice(2)}`);
-  const scannerRef = useRef(null);
-
-  useEffect(() => {
-    if (!active) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const { Html5QrcodeScanner } = await import("html5-qrcode");
-        if (cancelled) {
-          return;
-        }
-
-        const scanner = new Html5QrcodeScanner(
-          idRef.current,
-          { fps: 10, qrbox: 220, rememberLastUsedCamera: true },
-          false
-        );
-
-        scannerRef.current = scanner;
-        scanner.render(
-          text => {
-            const match = String(text).match(/\/join\/([A-Z0-9]{6})/i);
-            onDetected((match ? match[1] : text).toString().trim().toUpperCase());
-            scanner.clear().catch(() => {});
-          },
-          () => {}
-        );
-      } catch (error) {
-        onError("Camera access was denied or unavailable. Use manual code entry instead.");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      const scanner = scannerRef.current;
-      scannerRef.current = null;
-      if (scanner) {
-        scanner.clear().catch(() => {});
-      }
-    };
-  }, [active, onDetected, onError]);
-
-  return <div id={idRef.current} style={{ width: "100%" }} />;
-}
-
-function JoinRoomScreen({
-  joinCode,
-  setJoinCode,
-  joinMode,
-  setJoinMode,
-  scanError,
-  setScanError,
-  onContinue,
-  onBack,
-}) {
-  return (
-    <div className="root">
-      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-        <div style={{ textAlign: "center" }}>
-          <div className="logo" style={{ fontSize: "clamp(2.3rem,10vw,3.4rem)" }}>Join Room</div>
-          <div style={{ fontSize: ".82rem", letterSpacing: ".18em", color: "rgba(255,255,255,.35)", marginTop: ".3rem", textTransform: "uppercase" }}>
-            Scan a QR code or enter a room code
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: ".65rem", width: "100%" }}>
-          <button className={joinMode === "scan" ? "btn btn-gold" : "btn btn-ghost"} style={{ flex: 1 }} onClick={() => { setJoinMode("scan"); setScanError(""); }}>
-            Scan QR
-          </button>
-          <button className={joinMode === "code" ? "btn btn-gold" : "btn btn-ghost"} style={{ flex: 1 }} onClick={() => setJoinMode("code") }>
-            Enter Code
-          </button>
-        </div>
-
-        <div style={{ width: "100%", background: "rgba(255,255,255,.03)", border: "1.5px solid rgba(255,255,255,.08)", borderRadius: 18, padding: "1.1rem", display: "flex", flexDirection: "column", gap: ".9rem" }}>
-          {joinMode === "scan" ? (
-            <>
-              <div style={{ fontSize: ".8rem", color: "rgba(255,255,255,.35)" }}>
-                Point your camera at the lobby QR code.
-              </div>
-              <JoinQrScanner
-                active
-                onDetected={code => {
-                  setJoinCode(code);
-                  setScanError("");
-                  onContinue(code);
-                }}
-                onError={message => setScanError(message)}
-              />
-              {scanError ? <div style={{ fontSize: ".8rem", color: "rgba(255,180,120,.95)", lineHeight: 1.5 }}>{scanError}</div> : null}
-              <button className="btn btn-ghost" type="button" onClick={() => setJoinMode("code")}>Use manual code instead</button>
-            </>
-          ) : (
-            <>
-              <input
-                className="inp"
-                placeholder="Enter 6-character code"
-                value={joinCode}
-                onChange={e => setJoinCode(e.target.value.toUpperCase().slice(0, 6))}
-                maxLength={6}
-                style={{ textAlign: "center", letterSpacing: ".22em", fontSize: "1.15rem" }}
-              />
-              <button className="btn btn-gold" type="button" onClick={() => onContinue(joinCode)} disabled={joinCode.trim().length !== 6}>
-                Continue
-              </button>
-            </>
-          )}
-          <button className="btn btn-ghost" type="button" onClick={onBack}>Back</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CreateRoomScreen({ nameInput, setNameInput, avatar, setAvatar, onCreate, onBack, busy }) {
-  return (
-    <div className="root">
-      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-        <ProfileForm
-          title="Create Room"
-          subtitle="Pick your name and avatar"
-          nameInput={nameInput}
-          setNameInput={setNameInput}
-          avatar={avatar}
-          setAvatar={setAvatar}
-          buttonLabel={busy ? "Creating…" : "Create Room"}
-          onSubmit={onCreate}
-          note="The room code and QR link appear as soon as the room is created."
-          disabled={busy}
-        />
-        <button className="btn btn-ghost" type="button" onClick={onBack} style={{ width: "100%", maxWidth: 420 }}>Back</button>
-      </div>
-    </div>
-  );
-}
-
-function LobbyScreen({ roomState, roomUrl, isHost, onStartGame, onLeave }) {
-  const players = roomState?.players || [];
-
-  return (
-    <div className="root">
-      <div style={{ width: "100%", maxWidth: 460, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: ".76rem", fontWeight: 700, letterSpacing: ".15em", color: "rgba(255,255,255,.35)", textTransform: "uppercase" }}>
-            Room Code
-          </div>
-          <div className="logo" style={{ fontSize: "clamp(2rem,9vw,3rem)", color: "#F5C518" }}>{roomState?.code}</div>
-        </div>
-
-        <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 18, padding: "1rem", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: ".9rem" }}>
-          {roomUrl ? (
-            <div style={{ background: "#fff", borderRadius: 16, padding: ".6rem" }}>
-              <QRCodeSVG value={roomUrl} size={190} bgColor="#ffffff" fgColor="#07070f" includeMargin />
-            </div>
-          ) : null}
-          <div style={{ textAlign: "center", fontSize: ".8rem", color: "rgba(255,255,255,.35)", lineHeight: 1.5 }}>
-            Share this QR or room code so others can join.
-          </div>
-        </div>
-
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: ".55rem" }}>
-          <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".12em", color: "rgba(255,255,255,.3)", textTransform: "uppercase" }}>
-            Players in Lobby
-          </div>
-          {players.map(player => (
-            <div key={player.id} className="score-row">
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(245,197,24,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>
-                {player.avatar}
-              </div>
-              <div style={{ flex: 1, fontWeight: 700 }}>{player.name}</div>
-              {roomState?.hostId === player.id ? <div style={{ fontSize: ".72rem", color: "rgba(245,197,24,.8)", letterSpacing: ".1em", textTransform: "uppercase" }}>Host</div> : null}
-            </div>
-          ))}
-        </div>
-
-        {isHost ? (
-          <button className="btn btn-gold" style={{ width: "100%", padding: "1rem" }} onClick={onStartGame} disabled={players.length < 2}>
-            {players.length < 2 ? "Need at least 2 players" : "Start Game 🎲"}
-          </button>
-        ) : (
-          <div style={{ width: "100%", textAlign: "center", fontSize: ".78rem", color: "rgba(255,255,255,.35)", letterSpacing: ".08em", textTransform: "uppercase" }} className="tap-hint">
-            Waiting for host to start…
-          </div>
-        )}
-
-        <button className="btn btn-ghost btn-sm" onClick={onLeave} style={{ width: "100%" }}>
-          Leave Room
-        </button>
-      </div>
-    </div>
-  );
+  return true;
 }
 
 // ─── Setup Screen ─────────────────────────────────────────────────────────────
@@ -593,6 +303,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
   const handleKey = e => { if (e.key === "Enter") addPlayer(); };
   return (
     <div className="root">
+      <style jsx global>{CSS}</style>
       <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem" }}>
 
         {/* Header */}
@@ -623,6 +334,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
           <div style={{ display: "flex", gap: ".6rem" }}>
             <input
               className="inp"
+              aria-label="Player name"
               placeholder="Enter name…"
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
@@ -631,6 +343,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
               style={{ flex: 1 }}
             />
             <button
+              type="button"
               className="btn btn-gold btn-sm"
               onClick={addPlayer}
               disabled={!nameInput.trim() || players.length >= 10}
@@ -642,7 +355,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
               {players.map(p => (
                 <div key={p} className="chip">
                   <span>{p}</span>
-                  <button className="chip-x" onClick={() => removePlayer(p)}>×</button>
+                  <button type="button" className="chip-x" aria-label={`Remove ${p}`} onClick={() => removePlayer(p)}>×</button>
                 </div>
               ))}
             </div>
@@ -655,6 +368,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
         </div>
 
         <button
+          type="button"
           className="btn btn-gold"
           onClick={startGame}
           disabled={players.length < 2}
@@ -670,8 +384,20 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
 // ─── Play Screen ──────────────────────────────────────────────────────────────
 function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecision, nextTurn, currentPlayer, currentPlayerAvatar, cardIdx, total, isActivePlayer }) {
   const progress = ((cardIdx + 1) / total) * 100;
+  const revealCard = () => {
+    if (!decided && isActivePlayer) setFlipped(true);
+  };
+
+  const handleCardKeyDown = event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      revealCard();
+    }
+  };
+
   return (
     <div className="root">
+      <style jsx global>{CSS}</style>
       <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
 
         {/* Top bar */}
@@ -705,7 +431,14 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
         </div>
 
         {/* Card */}
-        <div className="scene" onClick={() => !decided && isActivePlayer && setFlipped(true)}>
+        <div
+          className="scene"
+          role="button"
+          tabIndex={0}
+          aria-label={flipped ? `${catInfo?.label || "Game"} card: ${card?.text || ""}` : "Reveal the current card"}
+          onClick={revealCard}
+          onKeyDown={handleCardKeyDown}
+        >
           <div className={`card-inner${flipped ? " flipped" : ""}`}>
 
             {/* Front */}
@@ -788,7 +521,7 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
 }
 
 // ─── Result Screen ────────────────────────────────────────────────────────────
-function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults }) {
+function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults, shareStatus }) {
   const sorted = [...players].sort((a, b) => (scores[b]?.did || 0) - (scores[a]?.did || 0));
   const champion = sorted[0];
   const mostDrunk = [...players].sort((a, b) => (scores[b]?.drank || 0) - (scores[a]?.drank || 0))[0];
@@ -797,6 +530,7 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults 
 
   return (
     <div className="root">
+      <style jsx global>{CSS}</style>
       <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
 
         <div style={{ textAlign: "center" }}>
@@ -850,8 +584,11 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults 
             Play Again 🎲
           </button>
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onShareResults}>
-            Share Results
+            {shareStatus || "Share Results"}
           </button>
+        </div>
+        <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 }}>
+          {shareStatus}
         </div>
       </div>
     </div>
@@ -859,90 +596,43 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults 
 }
 
 // ─── App Root ─────────────────────────────────────────────────────────────────
-export default function EkikiGwe({ initialJoinCode = "" }) {
-  const [screen, setScreen] = useState("landing");
-  const [joinMode, setJoinMode] = useState("code");
-  const [joinCode, setJoinCode] = useState(initialJoinCode.toUpperCase());
-  const [scanError, setScanError] = useState("");
+export default function EkikiGwe() {
+  const [screen, setScreen] = useState("setup");
+  const [setupPlayers, setSetupPlayers] = useState([]);
   const [nameInput, setNameInput] = useState("");
-  const [avatar, setAvatar] = useState(AVATARS[0]);
-  const [roomCode, setRoomCode] = useState("");
-  const [roomUrl, setRoomUrl] = useState("");
   const [roomState, setRoomState] = useState(null);
-  const [localPlayerId, setLocalPlayerId] = useState("");
-  const [actionBusy, setActionBusy] = useState("");
   const [shareStatus, setShareStatus] = useState("");
-  const pusherRef = useRef(null);
-  const channelRef = useRef(null);
+  const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
-    if (initialJoinCode) {
-      setJoinCode(String(initialJoinCode).toUpperCase());
-      setJoinMode("code");
-      setScreen("join-profile");
-    }
-  }, [initialJoinCode]);
-
-  useEffect(() => {
-    return () => {
-      if (channelRef.current && pusherRef.current) {
-        channelRef.current.unbind_all();
-        pusherRef.current.unsubscribe(channelRef.current.name);
-        pusherRef.current.disconnect();
+    try {
+      const savedGame = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null");
+      if (isValidStoredGame(savedGame)) {
+        setRoomState(savedGame);
+        setScreen("game");
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY);
       }
-    };
+    } catch {
+      // Ignore malformed or inaccessible storage and start a fresh game.
+    } finally {
+      setStorageReady(true);
+    }
   }, []);
 
   useEffect(() => {
-    if (!roomCode) {
-      return undefined;
-    }
+    if (!storageReady) return;
 
-    let cancelled = false;
-
-    (async () => {
-      const { default: Pusher } = await import("pusher-js");
-      if (cancelled) {
-        return;
+    try {
+      if (roomState) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(roomState));
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY);
       }
-
-      if (channelRef.current && pusherRef.current) {
-        channelRef.current.unbind_all();
-        pusherRef.current.unsubscribe(channelRef.current.name);
-        pusherRef.current.disconnect();
-      }
-
-      const client = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
-      });
-
-      const channel = client.subscribe(`room-${roomCode}`);
-      const syncRoom = payload => {
-        const nextRoomState = payload?.roomState || payload;
-        if (nextRoomState) {
-          setRoomState(nextRoomState);
-          setScreen("room");
-        }
-      };
-
-      channel.bind("player-joined", syncRoom);
-      channel.bind("game-started", syncRoom);
-      channel.bind("game-state", syncRoom);
-
-      pusherRef.current = client;
-      channelRef.current = channel;
-    })().catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [roomCode]);
-
-  useEffect(() => {
-    if (initialJoinCode) {
-      setRoomCode(String(initialJoinCode).toUpperCase());
+    } catch {
+      // The game remains usable if storage is blocked or unavailable.
     }
-  }, [initialJoinCode]);
+  }, [roomState, storageReady]);
 
   const orderedCards = useMemo(() => {
     if (roomState?.cardSeed == null) {
@@ -959,227 +649,114 @@ export default function EkikiGwe({ initialJoinCode = "" }) {
   const players = roomState?.players || [];
   const currentPlayer = players[roomState?.playerIdx ?? 0] || null;
   const currentPlayerAvatar = currentPlayer?.avatar || "🎴";
-  const viewer = players.find(player => player.id === localPlayerId) || null;
-  const isHost = Boolean(roomState && viewer && roomState.hostId === viewer.id);
-  const isActivePlayer = Boolean(viewer && currentPlayer && viewer.id === currentPlayer.id);
+  const isActivePlayer = Boolean(roomState?.phase === "play");
   const card = orderedCards[roomState?.cardIdx ?? 0];
   const catInfo = card ? CAT[card.cat] : null;
 
-  const disconnectRoom = () => {
-    if (channelRef.current && pusherRef.current) {
-      channelRef.current.unbind_all();
-      pusherRef.current.unsubscribe(channelRef.current.name);
-      pusherRef.current.disconnect();
-    }
-    channelRef.current = null;
-    pusherRef.current = null;
-  };
-
   const resetAll = () => {
-    disconnectRoom();
-    setScreen("landing");
-    setJoinMode("code");
-    setJoinCode("");
-    setScanError("");
+    setScreen("setup");
+    setSetupPlayers([]);
     setNameInput("");
-    setAvatar(AVATARS[0]);
-    setRoomCode("");
-    setRoomUrl("");
     setRoomState(null);
-    setLocalPlayerId("");
-    setActionBusy("");
     setShareStatus("");
   };
 
-  const createRoom = async (playerName, playerAvatar) => {
-    const response = await fetch("/api/create-room", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: playerName, avatar: playerAvatar }),
-    });
-
-    if (!response.ok) {
-      throw new Error((await response.json().catch(() => ({})))?.error || "Could not create room");
-    }
-
-    const data = await response.json();
-    const createdPlayer = data.roomState.players[data.roomState.players.length - 1];
-    setRoomCode(data.code);
-    setRoomUrl(data.roomUrl);
-    setRoomState(data.roomState);
-    setLocalPlayerId(createdPlayer?.id || data.roomState.hostId);
-    setScreen("room");
-  };
-
-  const joinRoom = async (code, playerName, playerAvatar) => {
-    const response = await fetch("/api/join-room", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, name: playerName, avatar: playerAvatar }),
-    });
-
-    if (!response.ok) {
-      throw new Error((await response.json().catch(() => ({})))?.error || "Could not join room");
-    }
-
-    const data = await response.json();
-    const joinedPlayer = data.roomState.players[data.roomState.players.length - 1];
-    setRoomCode(code);
-    setRoomUrl(data.roomUrl);
-    setRoomState(data.roomState);
-    setLocalPlayerId(joinedPlayer?.id || "");
-    setScreen("room");
-  };
-
-  const sendAction = async action => {
-    if (!roomCode || !localPlayerId) {
+  const addPlayer = () => {
+    const name = nameInput.trim();
+    if (!name || setupPlayers.length >= 10 || setupPlayers.includes(name)) {
       return;
     }
-
-    setActionBusy(action);
-    try {
-      await fetch("/api/game-action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: roomCode, action, playerId: localPlayerId }),
-      });
-    } finally {
-      setActionBusy("");
-    }
+    setSetupPlayers([...setupPlayers, name]);
+    setNameInput("");
   };
 
-  const startGame = async () => {
-    if (!roomCode || !localPlayerId || !isHost) {
+  const removePlayer = name => {
+    setSetupPlayers(setupPlayers.filter(player => player !== name));
+  };
+
+  const startGame = () => {
+    if (setupPlayers.length < 2) {
       return;
     }
+    const gamePlayers = setupPlayers.map((name, index) => ({
+      id: `player-${index + 1}`,
+      name,
+      avatar: AVATARS[index % AVATARS.length],
+    }));
+    setRoomState({
+      code: "LOCAL",
+      players: gamePlayers,
+      phase: "play",
+      cardSeed: Math.floor(Math.random() * 1000000000),
+      cardIdx: 0,
+      playerIdx: 0,
+      scores: createEmptyScores(gamePlayers),
+      flipped: false,
+      decided: false,
+    });
+    setScreen("game");
+  };
 
-    setActionBusy("start");
-    try {
-      await fetch("/api/start-game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: roomCode, hostId: localPlayerId }),
-      });
-    } finally {
-      setActionBusy("");
-    }
+  const sendAction = action => {
+    setRoomState(current => {
+      const activePlayer = current?.players?.[current.playerIdx];
+      return current ? applyGameAction(current, action, activePlayer?.id) : current;
+    });
   };
 
   const shareResults = async () => {
     const leaderboard = [...players]
       .map(player => `${player.avatar} ${player.name}: ✅ ${roomState?.scores?.[player.name]?.did || 0} | 🥃 ${roomState?.scores?.[player.name]?.drank || 0}`)
       .join("\n");
-    const text = `Ekiki Gwe results for room ${roomCode}\n${leaderboard}\nPlay the next round at ${roomUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/join/${roomCode}`}`;
+    const text = `Ekiki Gwe results\n${leaderboard}`;
+    const showStatus = status => {
+      setShareStatus(status);
+      window.setTimeout(() => setShareStatus(""), 1800);
+    };
 
     try {
-      await navigator.clipboard.writeText(text);
-      setShareStatus("Copied!");
-      window.setTimeout(() => setShareStatus(""), 1800);
-    } catch {
-      setShareStatus("Copy failed");
-      window.setTimeout(() => setShareStatus(""), 1800);
+      if (navigator.share) {
+        await navigator.share({ title: "Ekiki Gwe results", text });
+        showStatus("Shared!");
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        showStatus("Copied!");
+        return;
+      }
+
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      const copied = document.execCommand("copy");
+      textArea.remove();
+      if (!copied) throw new Error("Copy command was rejected");
+      showStatus("Copied!");
+    } catch (error) {
+      if (error?.name !== "AbortError") showStatus("Share failed");
     }
   };
 
-  if (screen === "landing") {
-    return <LandingScreen onCreate={() => setScreen("create-room")} onJoin={() => setScreen(initialJoinCode ? "join-profile" : "join-room")} />;
-  }
-
-  if (screen === "create-room") {
+  if (screen === "setup") {
     return (
-      <CreateRoomScreen
+      <SetupScreen
+        players={setupPlayers}
         nameInput={nameInput}
         setNameInput={setNameInput}
-        avatar={avatar}
-        setAvatar={setAvatar}
-        busy={actionBusy === "create"}
-        onBack={() => setScreen("landing")}
-        onCreate={async (playerName, playerAvatar) => {
-          setActionBusy("create");
-          try {
-            await createRoom(playerName, playerAvatar);
-          } finally {
-            setActionBusy("");
-          }
-        }}
+        addPlayer={addPlayer}
+        removePlayer={removePlayer}
+        startGame={startGame}
       />
     );
   }
 
-  if (screen === "join-room") {
-    return (
-      <JoinRoomScreen
-        joinCode={joinCode}
-        setJoinCode={setJoinCode}
-        joinMode={joinMode}
-        setJoinMode={setJoinMode}
-        scanError={scanError}
-        setScanError={setScanError}
-        onBack={() => setScreen("landing")}
-        onContinue={code => {
-          const normalized = String(code || "").trim().toUpperCase();
-          if (normalized.length === 6) {
-            setJoinCode(normalized);
-            setScanError("");
-            setScreen("join-profile");
-          }
-        }}
-      />
-    );
-  }
-
-  if (screen === "join-profile") {
-    return (
-      <div className="root">
-        <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-          <ProfileForm
-            title="Join Room"
-            subtitle={`Room ${joinCode || roomCode}`}
-            nameInput={nameInput}
-            setNameInput={setNameInput}
-            avatar={avatar}
-            setAvatar={setAvatar}
-            buttonLabel={actionBusy === "join" ? "Joining…" : "Join Room"}
-            onSubmit={async (playerName, playerAvatar) => {
-              const normalized = String(joinCode || roomCode || "").trim().toUpperCase();
-              if (normalized.length !== 6) {
-                return;
-              }
-              setActionBusy("join");
-              try {
-                await joinRoom(normalized, playerName, playerAvatar);
-              } finally {
-                setActionBusy("");
-              }
-            }}
-            note={joinCode ? `You are joining room ${joinCode}.` : "Enter a room code first."}
-            disabled={actionBusy === "join"}
-          />
-          <button className="btn btn-ghost" type="button" onClick={() => setScreen("join-room")} style={{ width: "100%", maxWidth: 420 }}>
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!roomState) {
-    return <LandingScreen onCreate={() => setScreen("create-room")} onJoin={() => setScreen("join-room")} />;
-  }
-
-  if (roomState.phase === "lobby") {
-    return (
-      <LobbyScreen
-        roomState={roomState}
-        roomUrl={roomUrl}
-        isHost={isHost}
-        onStartGame={startGame}
-        onLeave={resetAll}
-      />
-    );
-  }
-
-  if (roomState.phase === "play") {
+  if (roomState?.phase === "play") {
     return (
       <PlayScreen
         card={card}
