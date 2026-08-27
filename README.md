@@ -22,6 +22,8 @@ npm start
 
 The game does not require environment variables, Pusher, Redis, or other hosted services. Its UI and game flow live in [`ekiki-gwe.jsx`](ekiki-gwe.jsx), with reusable card-order and turn-state helpers in [`lib/room.js`](lib/room.js).
 
+The original category, action, result, and player-avatar artwork lives in [`public/assets/game`](public/assets/game). These optimized WebP assets replace platform-dependent emoji glyphs with one consistent visual system.
+
 Active games are saved locally in the browser so an accidental refresh can resume the current card and scores. To run the automated state-machine tests and production build together:
 
 ```bash

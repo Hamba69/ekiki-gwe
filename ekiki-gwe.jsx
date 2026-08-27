@@ -1,14 +1,25 @@
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { CARD_COUNT, applyGameAction, buildCardOrder, createEmptyScores } from "./lib/room.js";
 
 // ─── SCC Orbit Compression: 6 categories × 30 = 180 cards ───────────────────
+const ASSET_ROOT = "/assets/game";
+const UI_ASSETS = {
+  cardBack: `${ASSET_ROOT}/card-back.webp`,
+  tap: `${ASSET_ROOT}/tap.webp`,
+  success: `${ASSET_ROOT}/success.webp`,
+  drink: `${ASSET_ROOT}/drink.webp`,
+  trophy: `${ASSET_ROOT}/trophy.webp`,
+  dice: `${ASSET_ROOT}/dice.webp`,
+};
+
 const CAT = {
-  D:{ label:"Dare",    emoji:"🎯", color:"#FF6B35", bg:"linear-gradient(145deg,#FF6B35,#C0392B)" },
-  T:{ label:"Truth",   emoji:"💬", color:"#4ECDC4", bg:"linear-gradient(145deg,#4ECDC4,#1A6B75)" },
-  S:{ label:"Group",   emoji:"🎉", color:"#F5C518", bg:"linear-gradient(145deg,#F5C518,#C47A00)" },
-  W:{ label:"Wild",    emoji:"🔥", color:"#FF4757", bg:"linear-gradient(145deg,#FF4757,#8E1ABA)" },
-  X:{ label:"Spicy",   emoji:"🌶️", color:"#FF6B9D", bg:"linear-gradient(145deg,#FF6B9D,#8B0057)" },
-  C:{ label:"Confess", emoji:"🤫", color:"#A29BFE", bg:"linear-gradient(145deg,#A29BFE,#4A3ABA)" },
+  D:{ label:"Dare",    icon:`${ASSET_ROOT}/category-dare.webp`, color:"#FF6B35", bg:"linear-gradient(145deg,#FF6B35,#C0392B)" },
+  T:{ label:"Truth",   icon:`${ASSET_ROOT}/category-truth.webp`, color:"#4ECDC4", bg:"linear-gradient(145deg,#4ECDC4,#1A6B75)" },
+  S:{ label:"Group",   icon:`${ASSET_ROOT}/category-group.webp`, color:"#F5C518", bg:"linear-gradient(145deg,#F5C518,#C47A00)" },
+  W:{ label:"Wild",    icon:`${ASSET_ROOT}/category-wild.webp`, color:"#FF4757", bg:"linear-gradient(145deg,#FF4757,#8E1ABA)" },
+  X:{ label:"Spicy",   icon:`${ASSET_ROOT}/category-spicy.webp`, color:"#FF6B9D", bg:"linear-gradient(145deg,#FF6B9D,#8B0057)" },
+  C:{ label:"Confess", icon:`${ASSET_ROOT}/category-confess.webp`, color:"#A29BFE", bg:"linear-gradient(145deg,#A29BFE,#4A3ABA)" },
 };
 
 const ALL = [
@@ -273,7 +284,18 @@ body{background:#07070f;overflow-x:hidden}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(245,197,24,.25);border-radius:2px}
 `;
 
-const AVATARS = ["🦁", "🐯", "🦊", "🐸", "🦋", "🐙", "🎭", "🔥", "💀", "👾", "🌙", "⚡"];
+const AVATARS = [
+  "avatar-lion",
+  "avatar-leopard",
+  "avatar-fox",
+  "avatar-frog",
+  "avatar-butterfly",
+  "avatar-octopus",
+  "avatar-jester",
+  "avatar-fire",
+  "avatar-moon",
+  "avatar-lightning",
+].map(name => `${ASSET_ROOT}/${name}.webp`);
 const STORAGE_KEY = "ekiki-gwe:active-game:v1";
 
 function isValidStoredGame(game) {
@@ -298,6 +320,19 @@ function isValidStoredGame(game) {
   return true;
 }
 
+function GameIcon({ src, alt = "", size = 24, fit = "contain", style = {} }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      sizes={`${size}px`}
+      style={{ width: size, height: size, objectFit: fit, flexShrink: 0, ...style }}
+    />
+  );
+}
+
 // ─── Setup Screen ─────────────────────────────────────────────────────────────
 function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer, startGame }) {
   const handleKey = e => { if (e.key === "Enter") addPlayer(); };
@@ -320,7 +355,9 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
         <div style={{ display: "flex", gap: "1rem", width: "100%" }}>
           {Object.entries(CAT).map(([k, v]) => (
             <div key={k} style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,.04)", borderRadius: 12, padding: ".5rem .25rem", border: `1px solid ${v.color}22` }}>
-              <div style={{ fontSize: "1.1rem" }}>{v.emoji}</div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <GameIcon src={v.icon} alt={`${v.label} category`} size={32} />
+              </div>
               <div style={{ fontSize: ".62rem", color: "rgba(255,255,255,.4)", letterSpacing: ".06em", textTransform: "uppercase", marginTop: ".1rem" }}>{v.label}</div>
             </div>
           ))}
@@ -374,7 +411,12 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
           disabled={players.length < 2}
           style={{ width: "100%", fontSize: "1.1rem", padding: "1rem" }}
         >
-          {players.length < 2 ? "Add at least 2 players" : "Start the Game 🎲"}
+          {players.length < 2 ? "Add at least 2 players" : (
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".5rem" }}>
+              <GameIcon src={UI_ASSETS.dice} size={24} />
+              Start the Game
+            </span>
+          )}
         </button>
       </div>
     </div>
@@ -423,8 +465,8 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
         <div className="anim-pop" key={currentPlayer} style={{ textAlign: "center" }}>
           <div style={{ fontSize: ".7rem", fontWeight: 700, letterSpacing: ".15em", color: "rgba(255,255,255,.35)", textTransform: "uppercase", marginBottom: ".2rem" }}>It's your turn</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: ".5rem" }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.08)", fontSize: "1.05rem" }}>
-              {currentPlayerAvatar}
+            <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", border: "1px solid rgba(245,197,24,.35)", background: "rgba(255,255,255,.08)", flexShrink: 0 }}>
+              <GameIcon src={currentPlayerAvatar} alt={`${currentPlayer} avatar`} size={40} fit="cover" />
             </div>
             <div className="logo" style={{ fontSize: "clamp(1.8rem,9vw,2.6rem)", color: catInfo?.color }}>{currentPlayer}</div>
           </div>
@@ -449,15 +491,19 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
                 ))}
               </svg>
               <div className="front-logo">EKIKI GWE</div>
-              <div style={{ fontSize: "3rem", margin: ".5rem 0" }}>🎴</div>
+              <GameIcon src={UI_ASSETS.cardBack} alt="Face-down party card" size={78} style={{ margin: ".5rem 0" }} />
               <div className="front-sub">Tap to reveal</div>
-              <div className="tap-hint">👆 tap the card</div>
+              <div className="tap-hint" style={{ display: "flex", alignItems: "center", gap: ".4rem" }}>
+                <GameIcon src={UI_ASSETS.tap} size={18} />
+                tap the card
+              </div>
             </div>
 
             {/* Back */}
             <div className="face face-back" style={{ background: catInfo?.bg }}>
               <div className="badge" style={{ background: "rgba(0,0,0,.25)", color: "#fff", marginBottom: "1rem" }}>
-                {catInfo?.emoji} {catInfo?.label}
+                {catInfo?.icon ? <GameIcon src={catInfo.icon} size={24} /> : null}
+                {catInfo?.label}
               </div>
               <div style={{
                 fontSize: "clamp(.95rem,3.5vw,1.15rem)",
@@ -477,10 +523,16 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
         {flipped && !decided && isActivePlayer && (
           <div className="anim-up" style={{ display: "flex", gap: ".75rem", width: "100%" }}>
             <button className="btn btn-gold" style={{ flex: 1 }} onClick={() => handleDecision("did")}>
-              ✅ I Did It
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".4rem" }}>
+                <GameIcon src={UI_ASSETS.success} size={24} />
+                I Did It
+              </span>
             </button>
             <button className="btn btn-red" style={{ flex: 1 }} onClick={() => handleDecision("drank")}>
-              🥃 I'll Drink
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".4rem" }}>
+                <GameIcon src={UI_ASSETS.drink} size={24} />
+                I'll Drink
+              </span>
             </button>
           </div>
         )}
@@ -526,7 +578,7 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
   const champion = sorted[0];
   const mostDrunk = [...players].sort((a, b) => (scores[b]?.drank || 0) - (scores[a]?.drank || 0))[0];
 
-  const findAvatar = name => playerMeta.find(player => player.name === name)?.avatar || "🎭";
+  const findAvatar = name => playerMeta.find(player => player.name === name)?.avatar || AVATARS[6];
 
   return (
     <div className="root">
@@ -534,7 +586,9 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
       <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
 
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "3rem", marginBottom: ".5rem" }}>🏆</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: ".5rem" }}>
+            <GameIcon src={UI_ASSETS.trophy} alt="Celebration trophy" size={76} />
+          </div>
           <div className="logo" style={{ fontSize: "clamp(2rem,10vw,3rem)", background: "linear-gradient(135deg,#F5C518,#FF6B35)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             Game Over
           </div>
@@ -545,12 +599,17 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
 
         {/* Champion & most drunk */}
         <div style={{ display: "flex", gap: ".75rem", width: "100%" }}>
-          {[{ label: "Legend 🎯", name: champion, sub: `${scores[champion]?.did || 0} challenges done` },
-            { label: "Most Hydrated 🥃", name: mostDrunk, sub: `${scores[mostDrunk]?.drank || 0} drinks taken` }
-          ].map(({ label, name, sub }) => (
+          {[{ label: "Legend", icon: UI_ASSETS.success, name: champion, sub: `${scores[champion]?.did || 0} challenges done` },
+            { label: "Most Hydrated", icon: UI_ASSETS.drink, name: mostDrunk, sub: `${scores[mostDrunk]?.drank || 0} drinks taken` }
+          ].map(({ label, icon, name, sub }) => (
             <div key={label} style={{ flex: 1, background: "rgba(245,197,24,.06)", border: "1px solid rgba(245,197,24,.2)", borderRadius: 14, padding: ".85rem", textAlign: "center" }}>
-              <div style={{ fontSize: ".7rem", fontWeight: 700, letterSpacing: ".1em", color: "rgba(255,255,255,.4)", textTransform: "uppercase", marginBottom: ".3rem" }}>{label}</div>
-              <div style={{ fontSize: "1.2rem", marginBottom: ".15rem" }}>{findAvatar(name)}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: ".3rem", fontSize: ".7rem", fontWeight: 700, letterSpacing: ".1em", color: "rgba(255,255,255,.4)", textTransform: "uppercase", marginBottom: ".45rem" }}>
+                <GameIcon src={icon} size={22} />
+                {label}
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: ".2rem" }}>
+                <GameIcon src={findAvatar(name)} alt={`${name} avatar`} size={44} fit="cover" style={{ borderRadius: "50%", border: "1px solid rgba(245,197,24,.3)" }} />
+              </div>
               <div style={{ fontWeight: 900, fontSize: "1.1rem", color: "#F5C518" }}>{name}</div>
               <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)", marginTop: ".2rem" }}>{sub}</div>
             </div>
@@ -567,13 +626,13 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: i === 0 ? "linear-gradient(135deg,#F5C518,#E8900A)" : "rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".85rem", fontWeight: 900, color: i === 0 ? "#07070f" : "rgba(255,255,255,.5)", flexShrink: 0 }}>
                 {i + 1}
               </div>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".9rem", flexShrink: 0 }}>
-                {findAvatar(p)}
+              <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", background: "rgba(255,255,255,.08)", flexShrink: 0 }}>
+                <GameIcon src={findAvatar(p)} alt={`${p} avatar`} size={30} fit="cover" />
               </div>
               <div style={{ flex: 1, fontWeight: 700 }}>{p}</div>
               <div style={{ display: "flex", gap: ".6rem", fontSize: ".82rem" }}>
-                <span title="Did it" style={{ color: "#4ECDC4" }}>✅ {scores[p]?.did || 0}</span>
-                <span title="Drank" style={{ color: "#FF6B35" }}>🥃 {scores[p]?.drank || 0}</span>
+                <span title="Did it" style={{ color: "#4ECDC4", display: "inline-flex", alignItems: "center", gap: ".2rem" }}><GameIcon src={UI_ASSETS.success} size={18} /> {scores[p]?.did || 0}</span>
+                <span title="Drank" style={{ color: "#FF6B35", display: "inline-flex", alignItems: "center", gap: ".2rem" }}><GameIcon src={UI_ASSETS.drink} size={18} /> {scores[p]?.drank || 0}</span>
               </div>
             </div>
           ))}
@@ -581,7 +640,10 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
 
         <div style={{ display: "flex", gap: ".75rem", width: "100%", marginTop: ".5rem" }}>
           <button className="btn btn-gold" style={{ flex: 1 }} onClick={reset}>
-            Play Again 🎲
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".4rem" }}>
+              <GameIcon src={UI_ASSETS.dice} size={24} />
+              Play Again
+            </span>
           </button>
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onShareResults}>
             {shareStatus || "Share Results"}
@@ -608,7 +670,13 @@ export default function EkikiGwe() {
     try {
       const savedGame = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null");
       if (isValidStoredGame(savedGame)) {
-        setRoomState(savedGame);
+        setRoomState({
+          ...savedGame,
+          players: savedGame.players.map((player, index) => ({
+            ...player,
+            avatar: AVATARS[index % AVATARS.length],
+          })),
+        });
         setScreen("game");
       } else {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -648,7 +716,7 @@ export default function EkikiGwe() {
 
   const players = roomState?.players || [];
   const currentPlayer = players[roomState?.playerIdx ?? 0] || null;
-  const currentPlayerAvatar = currentPlayer?.avatar || "🎴";
+  const currentPlayerAvatar = currentPlayer?.avatar || AVATARS[0];
   const isActivePlayer = Boolean(roomState?.phase === "play");
   const card = orderedCards[roomState?.cardIdx ?? 0];
   const catInfo = card ? CAT[card.cat] : null;
@@ -706,7 +774,7 @@ export default function EkikiGwe() {
 
   const shareResults = async () => {
     const leaderboard = [...players]
-      .map(player => `${player.avatar} ${player.name}: ✅ ${roomState?.scores?.[player.name]?.did || 0} | 🥃 ${roomState?.scores?.[player.name]?.drank || 0}`)
+      .map(player => `${player.name}: Did ${roomState?.scores?.[player.name]?.did || 0} | Drank ${roomState?.scores?.[player.name]?.drank || 0}`)
       .join("\n");
     const text = `Ekiki Gwe results\n${leaderboard}`;
     const showStatus = status => {
