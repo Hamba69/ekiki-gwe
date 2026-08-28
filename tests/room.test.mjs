@@ -38,7 +38,7 @@ test("card order is deterministic and contains every card exactly once", () => {
 });
 
 test("card order can shuffle only the cards from a selected category", () => {
-  const categoryIndexes = Array.from({ length: 30 }, (_, index) => index * 6);
+  const categoryIndexes = Array.from({ length: 30 }, (_, index) => index + 30);
   const first = buildCardOrder(24680, categoryIndexes);
   const second = buildCardOrder(24680, categoryIndexes);
 
