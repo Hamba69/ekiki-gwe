@@ -21,6 +21,7 @@ const CAT = {
   X:{ label:"Spicy",   icon:`${ASSET_ROOT}/category-spicy.webp`, color:"#FF6B9D", bg:"linear-gradient(145deg,#FF6B9D,#8B0057)" },
   C:{ label:"Confess", icon:`${ASSET_ROOT}/category-confess.webp`, color:"#A29BFE", bg:"linear-gradient(145deg,#A29BFE,#4A3ABA)" },
 };
+const RANDOM_CATEGORY = "ALL";
 
 const ALL = [
   // ── DARE (30) ──
@@ -211,6 +212,17 @@ const ALL = [
   ["C","Most embarrassing social media moment you've had?"],
 ];
 
+function getCardIndexes(category = RANDOM_CATEGORY) {
+  return ALL.reduce((indexes, [cardCategory], index) => {
+    if (category === RANDOM_CATEGORY || cardCategory === category) indexes.push(index);
+    return indexes;
+  }, []);
+}
+
+function getCategoryCardCount(category = RANDOM_CATEGORY) {
+  return getCardIndexes(category).length;
+}
+
 // Fisher-Yates — O(n), in-place
 function shuffle(a) {
   const b = [...a];
@@ -330,7 +342,12 @@ const DEFAULT_SETTINGS = { sound: true, haptics: true, reduceMotion: false };
 function isValidStoredGame(game) {
   if (!game || !["play", "result"].includes(game.phase)) return false;
   if (!Array.isArray(game.players) || game.players.length < 2 || game.players.length > 10) return false;
-  if (!Number.isInteger(game.cardSeed) || !Number.isInteger(game.cardIdx) || game.cardIdx < 0 || game.cardIdx >= CARD_COUNT) return false;
+  const category = game.category ?? RANDOM_CATEGORY;
+  if (category !== RANDOM_CATEGORY && !CAT[category]) return false;
+  const expectedCardCount = getCategoryCardCount(category);
+  const cardCount = game.cardCount ?? CARD_COUNT;
+  if (cardCount !== expectedCardCount) return false;
+  if (!Number.isInteger(game.cardSeed) || !Number.isInteger(game.cardIdx) || game.cardIdx < 0 || game.cardIdx >= cardCount) return false;
   if (!Number.isInteger(game.playerIdx) || game.playerIdx < 0 || game.playerIdx >= game.players.length) return false;
   if (typeof game.flipped !== "boolean" || typeof game.decided !== "boolean" || !game.scores || typeof game.scores !== "object") return false;
 
@@ -454,8 +471,10 @@ function ConfirmModal({ title, description, confirmLabel, tone = "danger", onCon
 }
 
 // ─── Setup Screen ─────────────────────────────────────────────────────────────
-function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer, startGame, error, onSettings, reduceMotion }) {
+function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer, selectedCategory, selectCategory, startGame, error, onSettings, reduceMotion }) {
   const handleKey = e => { if (e.key === "Enter") addPlayer(); };
+  const selectedCategoryInfo = CAT[selectedCategory];
+  const selectedCardCount = getCategoryCardCount(selectedCategory);
   return (
     <div className={`root${reduceMotion ? " reduce-motion" : ""}`}>
       <style jsx global>{CSS}</style>
@@ -472,16 +491,67 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
           </div>
         </div>
 
-        {/* Stats */}
-        <div style={{ display: "flex", gap: "1rem", width: "100%" }}>
-          {Object.entries(CAT).map(([k, v]) => (
-            <div key={k} style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,.04)", borderRadius: 12, padding: ".5rem .25rem", border: `1px solid ${v.color}22` }}>
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <GameIcon src={v.icon} alt={`${v.label} category`} size={32} />
-              </div>
-              <div style={{ fontSize: ".62rem", color: "rgba(255,255,255,.4)", letterSpacing: ".06em", textTransform: "uppercase", marginTop: ".1rem" }}>{v.label}</div>
-            </div>
-          ))}
+        {/* Deck selector */}
+        <div style={{ width: "100%", background: "rgba(255,255,255,.03)", border: "1.5px solid rgba(255,255,255,.08)", borderRadius: 18, padding: "1rem" }}>
+          <div style={{ fontSize: ".8rem", fontWeight: 700, letterSpacing: ".1em", color: "rgba(255,255,255,.4)", marginBottom: ".75rem", textTransform: "uppercase" }}>
+            Choose Your Deck
+          </div>
+          <button
+            type="button"
+            aria-pressed={selectedCategory === RANDOM_CATEGORY}
+            onClick={() => selectCategory(RANDOM_CATEGORY)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: ".7rem",
+              border: selectedCategory === RANDOM_CATEGORY ? "1.5px solid #F5C518" : "1px solid rgba(255,255,255,.1)",
+              borderRadius: 14,
+              padding: ".7rem .85rem",
+              background: selectedCategory === RANDOM_CATEGORY ? "rgba(245,197,24,.12)" : "rgba(255,255,255,.04)",
+              color: "#fff",
+              font: "inherit",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <GameIcon src={UI_ASSETS.dice} alt="" size={34} />
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontSize: ".9rem", fontWeight: 800 }}>Random</span>
+              <span style={{ display: "block", marginTop: ".1rem", fontSize: ".68rem", color: "rgba(255,255,255,.45)" }}>All 6 categories shuffled together</span>
+            </span>
+            {selectedCategory === RANDOM_CATEGORY ? <span aria-hidden="true" style={{ color: "#F5C518", fontWeight: 900 }}>✓</span> : null}
+          </button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: ".55rem", marginTop: ".65rem" }}>
+            {Object.entries(CAT).map(([key, category]) => {
+              const selected = selectedCategory === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => selectCategory(key)}
+                  style={{
+                    minWidth: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: ".25rem",
+                    border: selected ? `1.5px solid ${category.color}` : "1px solid rgba(255,255,255,.1)",
+                    borderRadius: 12,
+                    padding: ".55rem .25rem",
+                    background: selected ? `${category.color}1f` : "rgba(255,255,255,.04)",
+                    color: selected ? "#fff" : "rgba(255,255,255,.62)",
+                    font: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  <GameIcon src={category.icon} alt="" size={30} />
+                  <span style={{ fontSize: ".67rem", fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase" }}>{category.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Player add */}
@@ -523,9 +593,11 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
           </div>
         </div>
 
-        {/* 180 cards note */}
+        {/* Selected deck note */}
         <div style={{ textAlign: "center", fontSize: ".78rem", color: "rgba(255,255,255,.25)", letterSpacing: ".05em" }}>
-          180 cards · 6 categories · unlimited chaos
+          {selectedCategory === RANDOM_CATEGORY
+            ? `${selectedCardCount} cards · 6 categories · shuffled together`
+            : `${selectedCardCount} ${selectedCategoryInfo.label} cards · shuffled for every game`}
         </div>
 
         <button
@@ -538,7 +610,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
           {players.length < 2 ? "Add at least 2 players" : (
             <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".5rem" }}>
               <GameIcon src={UI_ASSETS.dice} size={24} />
-              Start the Game
+              {selectedCategory === RANDOM_CATEGORY ? "Start Random Game" : `Start ${selectedCategoryInfo.label} Game`}
             </span>
           )}
         </button>
@@ -791,6 +863,7 @@ export default function EkikiGwe() {
   const [setupPlayers, setSetupPlayers] = useState([]);
   const [nameInput, setNameInput] = useState("");
   const [setupError, setSetupError] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(RANDOM_CATEGORY);
   const [roomState, setRoomState] = useState(null);
   const [shareStatus, setShareStatus] = useState("");
   const [storageReady, setStorageReady] = useState(false);
@@ -807,13 +880,17 @@ export default function EkikiGwe() {
     try {
       const savedGame = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null");
       if (isValidStoredGame(savedGame)) {
+        const savedCategory = savedGame.category ?? RANDOM_CATEGORY;
         setRoomState({
           ...savedGame,
+          category: savedCategory,
+          cardCount: savedGame.cardCount ?? CARD_COUNT,
           players: savedGame.players.map((player, index) => ({
             ...player,
             avatar: AVATARS[index % AVATARS.length],
           })),
         });
+        setSelectedCategory(savedCategory);
         setScreen("game");
       } else {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -871,12 +948,13 @@ export default function EkikiGwe() {
       return ALL.map(([cat, text], id) => ({ id, cat, text }));
     }
 
-    return buildCardOrder(roomState.cardSeed).map(index => ({
+    const cardIndexes = getCardIndexes(roomState.category ?? RANDOM_CATEGORY);
+    return buildCardOrder(roomState.cardSeed, cardIndexes).map(index => ({
       id: index,
       cat: ALL[index][0],
       text: ALL[index][1],
     }));
-  }, [roomState?.cardSeed]);
+  }, [roomState?.cardSeed, roomState?.category]);
 
   const players = roomState?.players || [];
   const currentPlayer = players[roomState?.playerIdx ?? 0] || null;
@@ -955,6 +1033,7 @@ export default function EkikiGwe() {
     setSetupPlayers([]);
     setNameInput("");
     setSetupError("");
+    setSelectedCategory(RANDOM_CATEGORY);
     setRoomState(null);
     setShareStatus("");
     setOverlay(null);
@@ -964,6 +1043,7 @@ export default function EkikiGwe() {
     setSetupPlayers(players.map(player => player.name));
     setNameInput("");
     setSetupError("");
+    setSelectedCategory(roomState?.category ?? RANDOM_CATEGORY);
     setRoomState(null);
     setScreen("setup");
     setOverlay(null);
@@ -972,7 +1052,7 @@ export default function EkikiGwe() {
   const replayGame = () => {
     const names = players.map(player => player.name);
     if (names.length < 2) return;
-    startGameWithPlayers(names);
+    startGameWithPlayers(names, roomState?.category ?? RANDOM_CATEGORY);
     setOverlay(null);
     giveFeedback("success");
   };
@@ -1003,7 +1083,7 @@ export default function EkikiGwe() {
     giveFeedback("tap");
   };
 
-  const startGameWithPlayers = names => {
+  const startGameWithPlayers = (names, category = selectedCategory) => {
     const gamePlayers = names.map((name, index) => ({
       id: `player-${index + 1}`,
       name,
@@ -1013,6 +1093,8 @@ export default function EkikiGwe() {
       code: "LOCAL",
       players: gamePlayers,
       phase: "play",
+      category,
+      cardCount: getCategoryCardCount(category),
       cardSeed: Math.floor(Math.random() * 1000000000),
       cardIdx: 0,
       playerIdx: 0,
@@ -1151,6 +1233,11 @@ export default function EkikiGwe() {
           setNameInput={value => { setNameInput(value); setSetupError(""); }}
           addPlayer={addPlayer}
           removePlayer={removePlayer}
+          selectedCategory={selectedCategory}
+          selectCategory={category => {
+            setSelectedCategory(category);
+            giveFeedback("tap");
+          }}
           startGame={startGame}
           error={setupError}
           onSettings={openSettings}

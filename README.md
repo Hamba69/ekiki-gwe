@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000), add at least two players, and select **Start Game**.
+Visit [http://localhost:3000](http://localhost:3000), choose **Random** for all 180 cards or select one of the six 30-card category decks, add at least two players, and start the game.
 
 ## Production build
 
@@ -26,7 +26,7 @@ The original category, action, result, and player-avatar artwork lives in [`publ
 
 Active games are saved locally in the browser so an accidental refresh can resume the current card and scores. To run the automated state-machine tests and production build together:
 
-During play, **Back** or **Leave Game** ends the current round and returns to setup with the same player list. **Exit Game** clears both the active game and players. The game menu also supports finishing early to view scores, while the results screen can replay immediately with the same players or return to player setup. Sound, vibration, and reduced-motion preferences are available in **Settings** and persist on the device.
+The selected deck is saved with the active game. **Play Again** keeps the same category and creates a fresh shuffle, while **Leave Game** returns to setup with the same players and category selected. **Exit Game** clears the active game and players and resets the deck to Random. The game menu also supports finishing early to view scores. Sound, vibration, and reduced-motion preferences are available in **Settings** and persist on the device.
 
 ```bash
 npm run check

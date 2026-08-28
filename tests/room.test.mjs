@@ -13,11 +13,12 @@ const players = [
   { id: "p2", name: "Bob", avatar: "🐯" },
 ];
 
-function createGame() {
+function createGame(cardCount = CARD_COUNT) {
   return {
     players,
     phase: "play",
     cardSeed: 12345,
+    cardCount,
     cardIdx: 0,
     playerIdx: 0,
     scores: createEmptyScores(players),
@@ -34,6 +35,16 @@ test("card order is deterministic and contains every card exactly once", () => {
   assert.equal(first.length, CARD_COUNT);
   assert.equal(new Set(first).size, CARD_COUNT);
   assert.deepEqual([...first].sort((a, b) => a - b), Array.from({ length: CARD_COUNT }, (_, index) => index));
+});
+
+test("card order can shuffle only the cards from a selected category", () => {
+  const categoryIndexes = Array.from({ length: 30 }, (_, index) => index * 6);
+  const first = buildCardOrder(24680, categoryIndexes);
+  const second = buildCardOrder(24680, categoryIndexes);
+
+  assert.deepEqual(first, second);
+  assert.equal(first.length, 30);
+  assert.deepEqual([...first].sort((a, b) => a - b), categoryIndexes);
 });
 
 test("only the active player can complete the current turn", () => {
@@ -71,6 +82,38 @@ test("a complete deck ends on the results phase without skipping turns", () => {
     Object.values(game.scores).reduce((total, score) => total + score.did + score.drank, 0),
     CARD_COUNT
   );
+});
+
+test("a category game ends after its 30-card deck", () => {
+  let game = createGame(30);
+
+  for (let index = 0; index < 30; index += 1) {
+    const activePlayer = game.players[game.playerIdx];
+    game = applyGameAction(game, "flip", activePlayer.id);
+    game = applyGameAction(game, "did", activePlayer.id);
+    game = applyGameAction(game, "next", activePlayer.id);
+  }
+
+  assert.equal(game.phase, "result");
+  assert.equal(game.cardIdx, 29);
+  assert.equal(
+    Object.values(game.scores).reduce((total, score) => total + score.did + score.drank, 0),
+    30
+  );
+});
+
+test("games saved before deck selection still use the complete deck", () => {
+  let game = createGame();
+  delete game.cardCount;
+  game.cardIdx = CARD_COUNT - 1;
+
+  const activePlayer = game.players[game.playerIdx];
+  game = applyGameAction(game, "flip", activePlayer.id);
+  game = applyGameAction(game, "drank", activePlayer.id);
+  game = applyGameAction(game, "next", activePlayer.id);
+
+  assert.equal(game.phase, "result");
+  assert.equal(game.cardIdx, CARD_COUNT - 1);
 });
 
 test("the active player can finish a game early without changing scores", () => {
