@@ -72,3 +72,12 @@ test("a complete deck ends on the results phase without skipping turns", () => {
     CARD_COUNT
   );
 });
+
+test("the active player can finish a game early without changing scores", () => {
+  const initial = createGame();
+  assert.deepEqual(applyGameAction(initial, "finish", "p2"), initial);
+
+  const finished = applyGameAction(initial, "finish", "p1");
+  assert.equal(finished.phase, "result");
+  assert.deepEqual(finished.scores, initial.scores);
+});

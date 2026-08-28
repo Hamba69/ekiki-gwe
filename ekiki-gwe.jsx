@@ -250,6 +250,7 @@ body{background:#07070f;overflow-x:hidden}
 .tap-hint{margin-top:2.5rem;font-size:.75rem;letter-spacing:.12em;color:rgba(255,255,255,.3);text-transform:uppercase;animation:pulse 2.5s ease infinite}
 /* Buttons */
 .btn{font-family:'Outfit',sans-serif;font-weight:700;border-radius:50px;padding:.8rem 2rem;font-size:.95rem;cursor:pointer;transition:all .2s;border:none;letter-spacing:.04em;white-space:nowrap}
+.btn:disabled{opacity:.38;cursor:not-allowed;transform:none;box-shadow:none}
 .btn-gold{background:linear-gradient(135deg,#F5C518,#E8900A);color:#07070f;box-shadow:0 4px 20px rgba(245,197,24,.35)}
 .btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(245,197,24,.55)}
 .btn-gold:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
@@ -257,8 +258,33 @@ body{background:#07070f;overflow-x:hidden}
 .btn-red:hover{background:rgba(255,107,53,.1);transform:translateY(-2px)}
 .btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.1)}
 .btn-ghost:hover{background:rgba(255,255,255,.12)}
+.btn-danger{background:rgba(255,71,87,.1);color:#ff7b87;border:1.5px solid rgba(255,71,87,.45)}
+.btn-danger:hover{background:rgba(255,71,87,.18);transform:translateY(-2px)}
 .btn-sm{padding:.55rem 1.3rem;font-size:.82rem}
-.btn:focus-visible,.inp:focus-visible,.scene:focus-visible,.chip-x:focus-visible{outline:3px solid rgba(245,197,24,.8);outline-offset:3px}
+.btn:focus-visible,.inp:focus-visible,.scene:focus-visible,.chip-x:focus-visible,.icon-btn:focus-visible,.switch:focus-visible{outline:3px solid rgba(245,197,24,.8);outline-offset:3px}
+.app-bar{width:100%;max-width:420px;min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.8rem}
+.app-bar-title{font-size:.72rem;font-weight:800;letter-spacing:.16em;color:rgba(255,255,255,.52);text-transform:uppercase;text-align:center}
+.icon-btn{min-width:42px;height:42px;padding:0 .8rem;border-radius:50px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.82);font:700 .78rem 'Outfit',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;transition:all .2s}
+.icon-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.modal-backdrop{position:fixed;inset:0;z-index:50;background:rgba(3,3,10,.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:1rem;color:#fff;font-family:'Outfit',sans-serif}
+.modal{width:min(100%,430px);max-height:min(86vh,680px);overflow-y:auto;background:linear-gradient(160deg,#191126,#0d0a16);border:1px solid rgba(255,255,255,.13);border-radius:24px;padding:1.25rem;box-shadow:0 28px 80px rgba(0,0,0,.7);animation:slide-up .25s ease}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.modal-title{font-size:1.35rem;font-weight:900}
+.modal-sub{font-size:.85rem;line-height:1.5;color:rgba(255,255,255,.48);margin-top:.25rem}
+.menu-stack{display:flex;flex-direction:column;gap:.65rem}
+.menu-stack .btn{width:100%;text-align:left;border-radius:15px;padding:.9rem 1rem}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.setting-row:last-child{border-bottom:0}
+.setting-name{font-size:.95rem;font-weight:700}
+.setting-help{font-size:.76rem;color:rgba(255,255,255,.4);margin-top:.15rem;line-height:1.35}
+.switch{width:50px;height:29px;border:0;border-radius:99px;padding:3px;background:rgba(255,255,255,.14);cursor:pointer;transition:background .2s;flex-shrink:0}
+.switch.on{background:#F5C518}
+.switch:disabled{opacity:.42;cursor:not-allowed}
+.switch-knob{display:block;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .2s}
+.switch.on .switch-knob{transform:translateX(21px)}
+.feedback-tests{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-top:1rem}
+.feedback-status{min-height:20px;margin-top:.75rem;text-align:center;font-size:.78rem;color:rgba(255,255,255,.62)}
+.reduce-motion *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 /* Input */
 .inp{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:.7rem 1.1rem;color:#fff;font-family:'Outfit',sans-serif;font-size:1rem;outline:none;transition:border-color .2s}
 .inp::placeholder{color:rgba(255,255,255,.3)}
@@ -282,6 +308,7 @@ body{background:#07070f;overflow-x:hidden}
 .anim-up{animation:slide-up .38s ease forwards}
 .anim-pop{animation:pop .42s ease forwards}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(245,197,24,.25);border-radius:2px}
+@media (min-width:600px){.modal-backdrop{align-items:center}}
 `;
 
 const AVATARS = [
@@ -297,6 +324,8 @@ const AVATARS = [
   "avatar-lightning",
 ].map(name => `${ASSET_ROOT}/${name}.webp`);
 const STORAGE_KEY = "ekiki-gwe:active-game:v1";
+const SETTINGS_KEY = "ekiki-gwe:settings:v1";
+const DEFAULT_SETTINGS = { sound: true, haptics: true, reduceMotion: false };
 
 function isValidStoredGame(game) {
   if (!game || !["play", "result"].includes(game.phase)) return false;
@@ -333,12 +362,104 @@ function GameIcon({ src, alt = "", size = 24, fit = "contain", style = {} }) {
   );
 }
 
+function AppBar({ title, onBack, onMenu, menuLabel = "Menu" }) {
+  return (
+    <div className="app-bar">
+      <div style={{ minWidth: 82 }}>
+        {onBack ? <button type="button" className="icon-btn" onClick={onBack} aria-label="Go back">&larr; Back</button> : null}
+      </div>
+      <div className="app-bar-title">{title}</div>
+      <div style={{ minWidth: 82, display: "flex", justifyContent: "flex-end" }}>
+        <button type="button" className="icon-btn" onClick={onMenu}>{menuLabel}</button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({ title, description, onClose, children, closeLabel = "Close" }) {
+  useEffect(() => {
+    const closeOnEscape = event => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="modal-head">
+          <div>
+            <div id="modal-title" className="modal-title">{title}</div>
+            {description ? <div className="modal-sub">{description}</div> : null}
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={closeLabel}>Close</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SettingsModal({ settings, updateSetting, support, onTestFeedback, feedbackStatus, onClose }) {
+  const rows = [
+    ["sound", "Button sounds", "Play a short sound for game actions."],
+    ["haptics", "Vibration", "Use gentle vibration on supported phones."],
+    ["reduceMotion", "Reduce motion", "Minimize card and screen animations."],
+  ];
+
+  return (
+    <Modal title="Settings" description="These preferences are saved on this device." onClose={onClose}>
+      {rows.map(([key, label, help]) => (
+        <div className="setting-row" key={key}>
+          <div>
+            <div className="setting-name">{label}</div>
+            <div className="setting-help">
+              {(key === "sound" && !support.sound) || (key === "haptics" && !support.haptics)
+                ? "Not supported by this browser or device."
+                : help}
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings[key]}
+            aria-label={label}
+            className={`switch${settings[key] ? " on" : ""}`}
+            disabled={(key === "sound" && !support.sound) || (key === "haptics" && !support.haptics)}
+            onClick={() => updateSetting(key, !settings[key])}
+          >
+            <span className="switch-knob" />
+          </button>
+        </div>
+      ))}
+      <div className="feedback-tests">
+        <button type="button" className="btn btn-ghost btn-sm" disabled={!settings.sound || !support.sound} onClick={() => onTestFeedback("sound")}>Test Sound</button>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={!settings.haptics || !support.haptics} onClick={() => onTestFeedback("haptics")}>Test Vibration</button>
+      </div>
+      <div className="feedback-status" aria-live="polite">{feedbackStatus || "Use the test buttons to confirm this device."}</div>
+    </Modal>
+  );
+}
+
+function ConfirmModal({ title, description, confirmLabel, tone = "danger", onConfirm, onClose }) {
+  return (
+    <Modal title={title} description={description} onClose={onClose}>
+      <div style={{ display: "flex", gap: ".7rem" }}>
+        <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button type="button" className={`btn ${tone === "gold" ? "btn-gold" : "btn-danger"}`} style={{ flex: 1 }} onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Setup Screen ─────────────────────────────────────────────────────────────
-function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer, startGame }) {
+function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer, startGame, error, onSettings, reduceMotion }) {
   const handleKey = e => { if (e.key === "Enter") addPlayer(); };
   return (
-    <div className="root">
+    <div className={`root${reduceMotion ? " reduce-motion" : ""}`}>
       <style jsx global>{CSS}</style>
+      <AppBar title="Player Setup" onMenu={onSettings} menuLabel="Settings" />
       <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem" }}>
 
         {/* Header */}
@@ -397,6 +518,9 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
               ))}
             </div>
           )}
+          <div aria-live="polite" style={{ minHeight: 18, marginTop: ".65rem", fontSize: ".78rem", color: error ? "#ff8a94" : "rgba(255,255,255,.35)" }}>
+            {error || "Names must be unique."}
+          </div>
         </div>
 
         {/* 180 cards note */}
@@ -424,7 +548,7 @@ function SetupScreen({ players, nameInput, setNameInput, addPlayer, removePlayer
 }
 
 // ─── Play Screen ──────────────────────────────────────────────────────────────
-function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecision, nextTurn, currentPlayer, currentPlayerAvatar, cardIdx, total, isActivePlayer }) {
+function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecision, nextTurn, currentPlayer, currentPlayerAvatar, cardIdx, total, isActivePlayer, onBack, onMenu, reduceMotion }) {
   const progress = ((cardIdx + 1) / total) * 100;
   const revealCard = () => {
     if (!decided && isActivePlayer) setFlipped(true);
@@ -438,8 +562,9 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
   };
 
   return (
-    <div className="root">
+    <div className={`root${reduceMotion ? " reduce-motion" : ""}`}>
       <style jsx global>{CSS}</style>
+      <AppBar title="Game in Progress" onBack={onBack} onMenu={onMenu} />
       <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
 
         {/* Top bar */}
@@ -573,7 +698,7 @@ function PlayScreen({ card, catInfo, flipped, setFlipped, decided, handleDecisio
 }
 
 // ─── Result Screen ────────────────────────────────────────────────────────────
-function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults, shareStatus }) {
+function ResultScreen({ scores, players, playerMeta = [], replay, newPlayers, onBack, onExit, onSettings, onShareResults, shareStatus, reduceMotion }) {
   const sorted = [...players].sort((a, b) => (scores[b]?.did || 0) - (scores[a]?.did || 0));
   const champion = sorted[0];
   const mostDrunk = [...players].sort((a, b) => (scores[b]?.drank || 0) - (scores[a]?.drank || 0))[0];
@@ -581,8 +706,9 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
   const findAvatar = name => playerMeta.find(player => player.name === name)?.avatar || AVATARS[6];
 
   return (
-    <div className="root">
+    <div className={`root${reduceMotion ? " reduce-motion" : ""}`}>
       <style jsx global>{CSS}</style>
+      <AppBar title="Final Scores" onBack={onBack} onMenu={onSettings} menuLabel="Settings" />
       <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
 
         <div style={{ textAlign: "center" }}>
@@ -639,7 +765,7 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
         </div>
 
         <div style={{ display: "flex", gap: ".75rem", width: "100%", marginTop: ".5rem" }}>
-          <button className="btn btn-gold" style={{ flex: 1 }} onClick={reset}>
+          <button className="btn btn-gold" style={{ flex: 1 }} onClick={replay}>
             <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".4rem" }}>
               <GameIcon src={UI_ASSETS.dice} size={24} />
               Play Again
@@ -649,6 +775,8 @@ function ResultScreen({ scores, players, playerMeta = [], reset, onShareResults,
             {shareStatus || "Share Results"}
           </button>
         </div>
+        <button type="button" className="btn btn-ghost" style={{ width: "100%" }} onClick={newPlayers}>Change Players</button>
+        <button type="button" className="btn btn-danger" style={{ width: "100%" }} onClick={onExit}>Exit Game</button>
         <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 }}>
           {shareStatus}
         </div>
@@ -662,9 +790,18 @@ export default function EkikiGwe() {
   const [screen, setScreen] = useState("setup");
   const [setupPlayers, setSetupPlayers] = useState([]);
   const [nameInput, setNameInput] = useState("");
+  const [setupError, setSetupError] = useState("");
   const [roomState, setRoomState] = useState(null);
   const [shareStatus, setShareStatus] = useState("");
   const [storageReady, setStorageReady] = useState(false);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [overlay, setOverlay] = useState(null);
+  const [feedbackStatus, setFeedbackStatus] = useState("");
+
+  const feedbackSupport = {
+    sound: typeof window !== "undefined" && Boolean(window.AudioContext || window.webkitAudioContext),
+    haptics: typeof navigator !== "undefined" && typeof navigator.vibrate === "function",
+  };
 
   useEffect(() => {
     try {
@@ -680,6 +817,14 @@ export default function EkikiGwe() {
         setScreen("game");
       } else {
         window.localStorage.removeItem(STORAGE_KEY);
+      }
+      const savedSettings = JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "null");
+      if (savedSettings && typeof savedSettings === "object") {
+        setSettings({
+          sound: typeof savedSettings.sound === "boolean" ? savedSettings.sound : DEFAULT_SETTINGS.sound,
+          haptics: typeof savedSettings.haptics === "boolean" ? savedSettings.haptics : DEFAULT_SETTINGS.haptics,
+          reduceMotion: typeof savedSettings.reduceMotion === "boolean" ? savedSettings.reduceMotion : DEFAULT_SETTINGS.reduceMotion,
+        });
       }
     } catch {
       // Ignore malformed or inaccessible storage and start a fresh game.
@@ -702,6 +847,25 @@ export default function EkikiGwe() {
     }
   }, [roomState, storageReady]);
 
+  useEffect(() => {
+    if (!storageReady) return;
+    try {
+      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      // Settings remain available for the current session if storage is blocked.
+    }
+  }, [settings, storageReady]);
+
+  useEffect(() => {
+    if (roomState?.phase !== "play") return undefined;
+    const warnBeforeLeaving = event => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [roomState?.phase]);
+
   const orderedCards = useMemo(() => {
     if (roomState?.cardSeed == null) {
       return ALL.map(([cat, text], id) => ({ id, cat, text }));
@@ -721,32 +885,126 @@ export default function EkikiGwe() {
   const card = orderedCards[roomState?.cardIdx ?? 0];
   const catInfo = card ? CAT[card.cat] : null;
 
-  const resetAll = () => {
+  const giveFeedback = (kind, channels = settings) => {
+    let vibrationRequested = false;
+    let soundPlayed = false;
+
+    if (channels.haptics && feedbackSupport.haptics) {
+      vibrationRequested = navigator.vibrate(kind === "success" ? [18, 35, 18] : 12);
+    }
+
+    if (channels.sound && feedbackSupport.sound) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        void context.resume();
+        oscillator.type = "sine";
+        oscillator.frequency.value = kind === "success" ? 660 : 440;
+        gain.gain.setValueAtTime(0.045, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.12);
+        oscillator.addEventListener("ended", () => context.close(), { once: true });
+        soundPlayed = true;
+      } catch {
+        // Audio feedback is optional and should never block play.
+      }
+    }
+
+    return { soundPlayed, vibrationRequested };
+  };
+
+  const updateSetting = (key, value) => {
+    setSettings(current => ({ ...current, [key]: value }));
+    if (key === "sound" || key === "haptics") {
+      if (!value) {
+        setFeedbackStatus(`${key === "sound" ? "Sound" : "Vibration"} disabled.`);
+        return;
+      }
+      const result = giveFeedback("tap", {
+        sound: key === "sound",
+        haptics: key === "haptics",
+      });
+      setFeedbackStatus(key === "sound"
+        ? (result.soundPlayed ? "Sound enabled — preview played." : "Sound is unavailable on this device.")
+        : (result.vibrationRequested ? "Vibration enabled — feedback requested." : "Vibration is unavailable on this device."));
+    }
+  };
+
+  const testFeedback = channel => {
+    const result = giveFeedback("success", {
+      sound: channel === "sound",
+      haptics: channel === "haptics",
+    });
+    setFeedbackStatus(channel === "sound"
+      ? (result.soundPlayed ? "Sound preview played." : "Sound is unavailable on this device.")
+      : (result.vibrationRequested ? "Vibration requested. Did you feel it?" : "This browser cannot vibrate the device."));
+  };
+
+  const openSettings = () => {
+    setFeedbackStatus("");
+    setOverlay("settings");
+  };
+
+  const exitGame = () => {
     setScreen("setup");
     setSetupPlayers([]);
     setNameInput("");
+    setSetupError("");
     setRoomState(null);
     setShareStatus("");
+    setOverlay(null);
+  };
+
+  const leaveGame = () => {
+    setSetupPlayers(players.map(player => player.name));
+    setNameInput("");
+    setSetupError("");
+    setRoomState(null);
+    setScreen("setup");
+    setOverlay(null);
+  };
+
+  const replayGame = () => {
+    const names = players.map(player => player.name);
+    if (names.length < 2) return;
+    startGameWithPlayers(names);
+    setOverlay(null);
+    giveFeedback("success");
   };
 
   const addPlayer = () => {
     const name = nameInput.trim();
-    if (!name || setupPlayers.length >= 10 || setupPlayers.includes(name)) {
+    if (!name) {
+      setSetupError("Enter a player name first.");
+      return;
+    }
+    if (setupPlayers.length >= 10) {
+      setSetupError("A game can have up to 10 players.");
+      return;
+    }
+    if (setupPlayers.some(player => player.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setSetupError(`${name} is already in the game.`);
       return;
     }
     setSetupPlayers([...setupPlayers, name]);
     setNameInput("");
+    setSetupError("");
+    giveFeedback("tap");
   };
 
   const removePlayer = name => {
     setSetupPlayers(setupPlayers.filter(player => player !== name));
+    setSetupError("");
+    giveFeedback("tap");
   };
 
-  const startGame = () => {
-    if (setupPlayers.length < 2) {
-      return;
-    }
-    const gamePlayers = setupPlayers.map((name, index) => ({
+  const startGameWithPlayers = names => {
+    const gamePlayers = names.map((name, index) => ({
       id: `player-${index + 1}`,
       name,
       avatar: AVATARS[index % AVATARS.length],
@@ -765,11 +1023,27 @@ export default function EkikiGwe() {
     setScreen("game");
   };
 
+  const startGame = () => {
+    if (setupPlayers.length < 2) {
+      setSetupError("Add at least two players to start.");
+      return;
+    }
+    startGameWithPlayers(setupPlayers);
+    setSetupError("");
+    giveFeedback("success");
+  };
+
   const sendAction = action => {
     setRoomState(current => {
       const activePlayer = current?.players?.[current.playerIdx];
       return current ? applyGameAction(current, action, activePlayer?.id) : current;
     });
+    giveFeedback(action === "did" || action === "finish" ? "success" : "tap");
+  };
+
+  const finishGame = () => {
+    sendAction("finish");
+    setOverlay(null);
   };
 
   const shareResults = async () => {
@@ -811,46 +1085,123 @@ export default function EkikiGwe() {
     }
   };
 
+  let overlayView = null;
+  if (overlay === "settings") {
+    overlayView = (
+      <SettingsModal
+        settings={settings}
+        updateSetting={updateSetting}
+        support={feedbackSupport}
+        onTestFeedback={testFeedback}
+        feedbackStatus={feedbackStatus}
+        onClose={() => { setFeedbackStatus(""); setOverlay(null); }}
+      />
+    );
+  } else if (overlay === "menu") {
+    overlayView = (
+      <Modal title="Game Menu" description="Your game is saved automatically on this device." onClose={() => setOverlay(null)}>
+        <div className="menu-stack">
+          <button type="button" className="btn btn-gold" onClick={() => setOverlay(null)}>Resume Game</button>
+          <button type="button" className="btn btn-ghost" onClick={openSettings}>Settings</button>
+          <button type="button" className="btn btn-ghost" onClick={() => setOverlay("finish")}>Finish Game &amp; View Scores</button>
+          <button type="button" className="btn btn-ghost" onClick={() => setOverlay("leave")}>Leave Game</button>
+          <button type="button" className="btn btn-danger" onClick={() => setOverlay("exit")}>Exit Game</button>
+        </div>
+      </Modal>
+    );
+  } else if (overlay === "finish") {
+    overlayView = (
+      <ConfirmModal
+        title="Finish game now?"
+        description="The current scores will become the final results. You can then replay with the same players."
+        confirmLabel="View Results"
+        tone="gold"
+        onConfirm={finishGame}
+        onClose={() => setOverlay(null)}
+      />
+    );
+  } else if (overlay === "leave") {
+    overlayView = (
+      <ConfirmModal
+        title="Leave this game?"
+        description="Current progress will end, but the player list will be kept so you can start again quickly."
+        confirmLabel="Leave Game"
+        onConfirm={leaveGame}
+        onClose={() => setOverlay(null)}
+      />
+    );
+  } else if (overlay === "exit") {
+    overlayView = (
+      <ConfirmModal
+        title="Exit Ekiki Gwe?"
+        description="This clears the current game and player list from this device."
+        confirmLabel="Exit Game"
+        onConfirm={exitGame}
+        onClose={() => setOverlay(null)}
+      />
+    );
+  }
+
   if (screen === "setup") {
     return (
-      <SetupScreen
-        players={setupPlayers}
-        nameInput={nameInput}
-        setNameInput={setNameInput}
-        addPlayer={addPlayer}
-        removePlayer={removePlayer}
-        startGame={startGame}
-      />
+      <>
+        <SetupScreen
+          players={setupPlayers}
+          nameInput={nameInput}
+          setNameInput={value => { setNameInput(value); setSetupError(""); }}
+          addPlayer={addPlayer}
+          removePlayer={removePlayer}
+          startGame={startGame}
+          error={setupError}
+          onSettings={openSettings}
+          reduceMotion={settings.reduceMotion}
+        />
+        {overlayView}
+      </>
     );
   }
 
   if (roomState?.phase === "play") {
     return (
-      <PlayScreen
-        card={card}
-        catInfo={catInfo}
-        flipped={roomState.flipped}
-        setFlipped={() => sendAction("flip")}
-        decided={roomState.decided}
-        handleDecision={choice => sendAction(choice)}
-        nextTurn={() => sendAction("next")}
-        currentPlayer={currentPlayer?.name || ""}
-        currentPlayerAvatar={currentPlayerAvatar}
-        cardIdx={roomState.cardIdx}
-        total={orderedCards.length}
-        isActivePlayer={isActivePlayer}
-      />
+      <>
+        <PlayScreen
+          card={card}
+          catInfo={catInfo}
+          flipped={roomState.flipped}
+          setFlipped={() => sendAction("flip")}
+          decided={roomState.decided}
+          handleDecision={choice => sendAction(choice)}
+          nextTurn={() => sendAction("next")}
+          currentPlayer={currentPlayer?.name || ""}
+          currentPlayerAvatar={currentPlayerAvatar}
+          cardIdx={roomState.cardIdx}
+          total={orderedCards.length}
+          isActivePlayer={isActivePlayer}
+          onBack={() => setOverlay("leave")}
+          onMenu={() => setOverlay("menu")}
+          reduceMotion={settings.reduceMotion}
+        />
+        {overlayView}
+      </>
     );
   }
 
   return (
-    <ResultScreen
-      scores={roomState.scores || {}}
-      players={players.map(player => player.name)}
-      playerMeta={players}
-      reset={resetAll}
-      onShareResults={shareResults}
-      shareStatus={shareStatus}
-    />
+    <>
+      <ResultScreen
+        scores={roomState.scores || {}}
+        players={players.map(player => player.name)}
+        playerMeta={players}
+        replay={replayGame}
+        newPlayers={leaveGame}
+        onBack={leaveGame}
+        onExit={() => setOverlay("exit")}
+        onSettings={openSettings}
+        onShareResults={shareResults}
+        shareStatus={shareStatus}
+        reduceMotion={settings.reduceMotion}
+      />
+      {overlayView}
+    </>
   );
 }

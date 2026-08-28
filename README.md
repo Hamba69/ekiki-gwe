@@ -26,6 +26,8 @@ The original category, action, result, and player-avatar artwork lives in [`publ
 
 Active games are saved locally in the browser so an accidental refresh can resume the current card and scores. To run the automated state-machine tests and production build together:
 
+During play, **Back** or **Leave Game** ends the current round and returns to setup with the same player list. **Exit Game** clears both the active game and players. The game menu also supports finishing early to view scores, while the results screen can replay immediately with the same players or return to player setup. Sound, vibration, and reduced-motion preferences are available in **Settings** and persist on the device.
+
 ```bash
 npm run check
 ```
