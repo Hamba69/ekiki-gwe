@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000), add at least two players, then build a multi-category deck. The free game contains 300 cards across eight categories. The mock **After Hours** entitlement adds three 60-card categories, bringing **Random / All** to 480 cards.
+Visit [http://localhost:3000](http://localhost:3000), add at least two players, then choose **Random / All** or build a multi-category deck. The core game contains 300 cards across eight categories. The **After Hours** campaign adds three 60-card categories, bringing Random / All to 480 cards.
 
 ## Production build
 
@@ -28,7 +28,7 @@ Active games are saved locally in the browser so an accidental refresh resumes t
 
 **Play Again** keeps the same category mix and creates a fresh shuffle. **Change decks** keeps the players but returns to Deck Select. **Exit Game** clears the active game and players. Sound, vibration, and reduced-motion preferences persist on the device.
 
-Payments are intentionally not live. The After Hours boundary is isolated behind `purchaseAfterHours`; enter the preview code `AFTERHOURS` to exercise the local entitlement and Restore flow. Replace that function with a verified checkout/entitlement integration before charging customers.
+Use campaign code `BANANGE` to unlock After Hours on the current device. **Restore access** re-reads the saved After Hours access flag.
 
 ```bash
 npm run check
