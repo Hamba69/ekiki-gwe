@@ -2,11 +2,11 @@
 const isDevelopment = process.env.NODE_ENV !== "production";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data:",
-  `connect-src 'self'${isDevelopment ? " http: ws:" : ""}`,
+  `connect-src 'self'${isDevelopment ? " http: ws:" : ""} https://va.vercel-scripts.com https://vitals.vercel-insights.com`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
